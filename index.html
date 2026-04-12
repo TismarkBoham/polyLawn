@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Polylawn — Lawn Advisory</title>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --paper: #f7f5f0;
+  --ink:   #1c1a16;
+  --mid:   #6b6456;
+  --rule:  #d4cfc4;
+  --green: #3a5c2a;
+  --amber: #8a6a1a;
+  --red:   #7a2a1a;
+  --blue:  #1a3a5c;
+  --hover: #f0ede6;
+}
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: 'EB Garamond', Georgia, serif;
+  font-size: 16px;
+  line-height: 1.5;
+  min-height: 100vh;
+}
+.page {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 3rem 2rem 6rem;
+}
+
+/* ── MASTHEAD ── */
+.masthead {
+  border-top: 2px solid var(--ink);
+  border-bottom: 1px solid var(--ink);
+  padding: 0.6rem 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 3rem;
+}
+.masthead-title {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.7rem;
+  font-weight: 400;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+.masthead-meta {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.62rem;
+  color: var(--mid);
+  letter-spacing: 0.05em;
+}
+
+/* ── SECTION LABEL ── */
+.section-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--mid);
+  margin-bottom: 0.8rem;
+}
+
+/* ── INPUT GRID ── */
+.input-row {
+  display: grid;
+  grid-template-columns: 1fr 130px 130px 130px;
+  gap: 0;
+  border: 1px solid var(--ink);
+  margin-bottom: 0;
+}
+.input-cell {
+  border-right: 1px solid var(--ink);
+  padding: 0;
+  position: relative;
+}
+.input-cell:last-child { border-right: none; }
+.input-cell label {
+  display: block;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.58rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--mid);
+  padding: 0.45rem 0.75rem 0.2rem;
+  border-bottom: 1px solid var(--rule);
+}
+.input-cell input,
+.input-cell select {
+  width: 100%;
+  border: none;
+  background: transparent;
+  font-family: 'EB Garamond', serif;
+  font-size: 1rem;
+  color: var(--ink);
+  padding: 0.3rem 0.75rem 0.5rem;
+  outline: none;
+  appearance: none;
+  cursor: pointer;
+}
+.input-cell input::placeholder { color: var(--rule); }
+.input-cell select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236b6456'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  padding-right: 2rem;
+}
+.btn-run {
+  width: 100%;
+  padding: 0.75rem;
+  background: var(--ink);
+  color: var(--paper);
+  border: 1px solid var(--ink);
+  margin-top: -1px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  position: relative;
+}
+.btn-run:hover  { background: var(--green); border-color: var(--green); }
+.btn-run:disabled { background: var(--mid); border-color: var(--mid); cursor: not-allowed; }
+.btn-run .loading-text { display: none; }
+.btn-run.loading .default-text { display: none; }
+.btn-run.loading .loading-text { display: inline; }
+
+/* ── RESULTS ── */
+#results { opacity:0; transform:translateY(10px); transition: opacity .4s, transform .4s; }
+#results.show { opacity:1; transform:none; }
+
+.rule-heavy { border:none; border-top:1px solid var(--ink); margin:2.5rem 0; }
+.rule       { border:none; border-top:1px solid var(--rule); margin:2rem 0; }
+
+.site-line {
+  display:flex; justify-content:space-between; align-items:baseline;
+  flex-wrap:wrap; gap:0.5rem; margin-bottom:2rem;
+}
+.site-address-display { font-style:italic; font-size:1.05rem; }
+.site-coords {
+  font-family:'IBM Plex Mono',monospace; font-size:0.6rem;
+  color:var(--mid); letter-spacing:0.05em;
+}
+
+/* ── BLEND TABLE ── */
+.blend-header {
+  font-family:'IBM Plex Mono',monospace; font-size:0.62rem;
+  letter-spacing:0.18em; text-transform:uppercase; color:var(--mid);
+  margin-bottom:1.2rem;
+}
+.blend-table { width:100%; border-collapse:collapse; margin-bottom:0.5rem; }
+.blend-table tr {
+  border-bottom:1px solid var(--rule);
+  animation: fadeIn 0.35s ease both;
+}
+.blend-table tr:first-child { border-top:1px solid var(--ink); }
+.blend-table tr:last-child  { border-bottom:1px solid var(--ink); }
+@keyframes fadeIn {
+  from { opacity:0; transform:translateY(4px); }
+  to   { opacity:1; transform:none; }
+}
+.blend-table td { padding:0.65rem 0; vertical-align:middle; }
+.td-rank { font-family:'IBM Plex Mono',monospace; font-size:0.62rem; color:var(--mid); width:1.8rem; padding-right:0.5rem; }
+.td-name { font-size:1.05rem; width:38%; }
+.td-name a { color:var(--ink); text-decoration:none; border-bottom:1px solid var(--rule); transition:border-color .15s; }
+.td-name a:hover { border-color:var(--green); color:var(--green); }
+.td-name .sp-latin { display:block; font-style:italic; font-size:0.8rem; color:var(--mid); }
+.td-group { font-family:'IBM Plex Mono',monospace; font-size:0.58rem; letter-spacing:0.08em; text-transform:uppercase; width:10%; }
+.td-si { width:80px; padding-left:1rem; }
+.td-pct { font-family:'IBM Plex Mono',monospace; font-size:1rem; text-align:right; width:6%; }
+.si-track { height:3px; background:var(--rule); border-radius:2px; overflow:hidden; }
+.si-fill  { height:100%; border-radius:2px; transition:width 0.7s cubic-bezier(.4,0,.2,1); }
+.group-dot { display:inline-block; width:6px; height:6px; border-radius:50%; margin-right:0.3rem; vertical-align:middle; position:relative; top:-1px; }
+
+/* ── SEEDING PLAN ── */
+.seeding-plan {
+  border:1px solid var(--rule);
+  margin-top:1.5rem;
+}
+.seeding-plan-header {
+  padding:0.6rem 1rem;
+  background:var(--hover);
+  border-bottom:1px solid var(--rule);
+  font-family:'IBM Plex Mono',monospace;
+  font-size:0.62rem;
+  letter-spacing:0.15em;
+  text-transform:uppercase;
+  color:var(--mid);
+}
+.seeding-grid {
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  border-bottom: none;
+}
+.seeding-cell {
+  padding:0.9rem 1rem;
+  border-right:1px solid var(--rule);
+}
+.seeding-cell:last-child { border-right:none; }
+.seeding-cell .sc-label {
+  font-family:'IBM Plex Mono',monospace;
+  font-size:0.58rem;
+  letter-spacing:0.1em;
+  text-transform:uppercase;
+  color:var(--mid);
+  margin-bottom:0.2rem;
+}
+.seeding-cell .sc-val {
+  font-size:1.1rem;
+  color:var(--ink);
+}
+.seeding-cell .sc-sub {
+  font-family:'IBM Plex Mono',monospace;
+  font-size:0.62rem;
+  color:var(--mid);
+  margin-top:0.1rem;
+}
+.seeding-species-rows { border-top:1px solid var(--rule); }
+.seeding-sp-row {
+  display:grid;
+  grid-template-columns:1fr 100px 100px 100px;
+  padding:0.5rem 1rem;
+  border-bottom:1px solid var(--rule);
+  font-size:0.88rem;
+  align-items:center;
+}
+.seeding-sp-row:last-child { border-bottom:none; }
+.seeding-sp-row.header {
+  font-family:'IBM Plex Mono',monospace;
+  font-size:0.58rem;
+  letter-spacing:0.1em;
+  text-transform:uppercase;
+  color:var(--mid);
+  border-bottom:1px solid var(--rule);
+}
+.seeding-sp-row span { font-family:'IBM Plex Mono',monospace; font-size:0.8rem; text-align:right; }
+
+/* ── PLANTING NOTE ── */
+.planting-note {
+  display:flex; gap:1rem; align-items:baseline;
+  margin-top:1rem; padding:0.9rem 1rem;
+  border:1px solid var(--rule);
+}
+.planting-label { font-family:'IBM Plex Mono',monospace; font-size:0.6rem; letter-spacing:0.12em; text-transform:uppercase; color:var(--mid); white-space:nowrap; flex-shrink:0; }
+.planting-val { font-size:0.95rem; }
+
+/* ── BREAKDOWN TOGGLE ── */
+.breakdown-toggle {
+  margin-top:2rem;
+  display:flex; align-items:center; gap:1rem;
+  cursor:pointer; user-select:none;
+}
+.breakdown-toggle:hover .toggle-label { color:var(--ink); }
+.toggle-label { font-family:'IBM Plex Mono',monospace; font-size:0.62rem; letter-spacing:0.15em; text-transform:uppercase; color:var(--mid); transition:color .15s; }
+.toggle-line { flex:1; height:1px; background:var(--rule); }
+.toggle-arrow { font-size:0.7rem; color:var(--mid); transition:transform 0.25s; }
+.breakdown-toggle.open .toggle-arrow { transform:rotate(180deg); }
+
+/* ── BREAKDOWN PANEL ── */
+#breakdown { display:none; margin-top:1.5rem; }
+#breakdown.open { display:block; }
+
+/* ── INFO TOOLTIP ── */
+.info-wrap { position:relative; display:inline-flex; align-items:center; gap:0.3rem; }
+.info-icon {
+  display:inline-flex; align-items:center; justify-content:center;
+  width:14px; height:14px;
+  border:1px solid var(--rule);
+  border-radius:50%;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:0.55rem;
+  color:var(--mid);
+  cursor:help;
+  flex-shrink:0;
+  transition:border-color .15s, color .15s;
+}
+.info-icon:hover { border-color:var(--ink); color:var(--ink); }
+.tooltip {
+  display:none;
+  position:absolute;
+  left:0; top:calc(100% + 6px);
+  width:240px;
+  background:var(--ink);
+  color:var(--paper);
+  font-family:'EB Garamond',serif;
+  font-size:0.82rem;
+  line-height:1.5;
+  padding:0.6rem 0.8rem;
+  border-radius:2px;
+  z-index:100;
+  pointer-events:none;
+  box-shadow:0 4px 16px rgba(0,0,0,0.2);
+}
+.tooltip::before {
+  content:'';
+  position:absolute;
+  top:-5px; left:8px;
+  width:8px; height:5px;
+  background:var(--ink);
+  clip-path:polygon(0 100%,50% 0,100% 100%);
+}
+.info-wrap:hover .tooltip { display:block; }
+
+/* ── DATA TABLE ── */
+.data-table { width:100%; border-collapse:collapse; margin-bottom:2rem; }
+.data-table td, .data-table th { padding:0.4rem 0; border-bottom:1px solid var(--rule); font-size:0.88rem; vertical-align:middle; }
+.data-table th { font-family:'IBM Plex Mono',monospace; font-size:0.58rem; letter-spacing:0.12em; text-transform:uppercase; color:var(--mid); font-weight:400; text-align:left; padding-bottom:0.5rem; border-bottom:1px solid var(--ink); }
+.data-table td:last-child { text-align:right; font-family:'IBM Plex Mono',monospace; font-size:0.8rem; }
+
+/* ── ALL SPECIES ── */
+.species-breakdown-row {
+  display:grid;
+  grid-template-columns:200px 1fr 54px auto;
+  gap:1rem;
+  align-items:center;
+  padding:0.55rem 0;
+  border-bottom:1px solid var(--rule);
+  font-size:0.88rem;
+}
+.species-breakdown-row.header { border-bottom:1px solid var(--ink); padding-bottom:0.4rem; }
+.species-breakdown-row.header span { font-family:'IBM Plex Mono',monospace; font-size:0.58rem; letter-spacing:0.12em; text-transform:uppercase; color:var(--mid); }
+.sp-unsuitable { opacity:0.4; }
+.score-mono { font-family:'IBM Plex Mono',monospace; font-size:0.8rem; text-align:right; }
+.limit-pills { display:flex; flex-wrap:wrap; gap:0.2rem; }
+.limit-pill {
+  font-family:'IBM Plex Mono',monospace; font-size:0.52rem;
+  padding:0.1rem 0.35rem; border:1px solid var(--rule);
+  color:var(--mid); letter-spacing:0.04em;
+}
+.limit-pill.bad { border-color:var(--red); color:var(--red); }
+.sp-group-tag {
+  font-family:'IBM Plex Mono',monospace; font-size:0.52rem;
+  letter-spacing:0.06em; text-transform:uppercase;
+  color:var(--mid); margin-top:0.15rem;
+}
+
+@media (max-width:640px) {
+  .input-row { grid-template-columns:1fr 1fr; }
+  .input-cell:nth-child(1) { grid-column:1/-1; }
+  .input-cell:nth-child(odd):not(:first-child) { border-right:1px solid var(--ink); }
+  .seeding-grid { grid-template-columns:1fr 1fr; }
+  .seeding-cell:nth-child(3) { border-right:none; border-top:1px solid var(--rule); grid-column:1/-1; }
+  .species-breakdown-row { grid-template-columns:150px 1fr 50px; }
+  .species-breakdown-row>*:nth-child(4) { display:none; }
+  .seeding-sp-row { grid-template-columns:1fr 80px 80px; }
+  .seeding-sp-row>*:nth-child(4) { display:none; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="masthead">
+    <div class="masthead-title">Polylawn — Lawn Advisory</div>
+    <div class="masthead-meta">SSURGO · PRISM · Shea &amp; Wolz (2024)</div>
+  </div>
+
+  <div class="section-label">Site parameters</div>
+  <div class="input-row">
+    <div class="input-cell">
+      <label>Address</label>
+      <input type="text" id="address" placeholder="100 Washington Ave, Albany, NY" />
+    </div>
+    <div class="input-cell">
+      <label>Lawn size</label>
+      <input type="text" id="lawnsize" placeholder="e.g. 0.25 acres" />
+    </div>
+    <div class="input-cell">
+      <label>Shade</label>
+      <select id="shade">
+        <option value="0">Full sun</option>
+        <option value="2">Light (2 hr)</option>
+        <option value="4" selected>Partial (4 hr)</option>
+        <option value="6">Heavy (6 hr)</option>
+        <option value="8">Dense (8 hr)</option>
+      </select>
+    </div>
+    <div class="input-cell">
+      <label>Foot traffic</label>
+      <select id="traffic">
+        <option value="low">Low</option>
+        <option value="medium" selected>Medium</option>
+        <option value="high">High</option>
+      </select>
+    </div>
+  </div>
+  <button class="btn-run" id="runBtn" onclick="analyze()">
+    <span class="default-text">Analyze site →</span>
+    <span class="loading-text">Fetching soil data…</span>
+  </button>
+
+  <hr class="rule-heavy" style="margin-top:2.5rem">
+
+  <div id="results">
+    <div class="site-line">
+      <div class="site-address-display" id="siteAddr"></div>
+      <div class="site-coords" id="siteMeta"></div>
+    </div>
+
+    <div class="blend-header">Recommended seed blend</div>
+    <table class="blend-table" id="blendTable"></table>
+
+    <div id="seedingPlanWrap"></div>
+
+    <div class="planting-note">
+      <div class="planting-label">Plant</div>
+      <div class="planting-val" id="plantingText"></div>
+    </div>
+
+    <div class="breakdown-toggle" id="toggleBtn" onclick="toggleBreakdown()">
+      <div class="toggle-label">Full species breakdown &amp; soil data</div>
+      <div class="toggle-line"></div>
+      <div class="toggle-arrow">▼</div>
+    </div>
+
+    <div id="breakdown">
+      <div class="section-label" style="margin-top:1.5rem">Soil &amp; climate data</div>
+      <table class="data-table" id="soilTable"></table>
+      <div class="section-label">All species — suitability index</div>
+      <div id="allSpecies"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ─── SPECIES DATABASE ────────────────────────────────────────────
+// buyLink: real seed supplier URLs (True Leaf Market, Ernst Conservation, Eden Brothers)
+const SPECIES = [
+  { name:"Kentucky Bluegrass", latin:"Poa pratensis", group:"Grass",
+    buyLink:"https://www.trueleafmarket.com/products/kentucky-bluegrass-grass-seed",
+    seeding_lbs_per_1000sqft: 2.5,
+    precip:[500,1400,700,1100], temp:[-40,5,-35,-5], gdd:[1500,3000,1800,2500],
+    drainS:["well drained","moderately well drained","somewhat excessively drained"],
+    drainI:["well drained","moderately well drained"],
+    texS:["silt loam","loam","sandy loam","loamy sand","clay loam","sandy clay loam","silt"],
+    texI:["silt loam","loam","clay loam"],
+    ph:[5.8,7.5,6.0,7.0], depth:[30,999,75,999], shade:[0,4,0,2],
+    traffic:{low:1,medium:0,high:-1} },
+
+  { name:"Tall Fescue", latin:"Festuca arundinacea", group:"Grass",
+    buyLink:"https://www.trueleafmarket.com/products/tall-fescue-grass-seed",
+    seeding_lbs_per_1000sqft: 8,
+    precip:[450,1500,650,1200], temp:[-29,5,-25,-5], gdd:[1400,3200,1700,2700],
+    drainS:["well drained","moderately well drained","somewhat poorly drained","somewhat excessively drained"],
+    drainI:["well drained","moderately well drained"],
+    texS:["silt loam","loam","clay loam","sandy loam","loamy sand","sandy clay loam","silty clay loam","silt"],
+    texI:["silt loam","loam","clay loam","silty clay loam"],
+    ph:[5.5,7.8,6.0,7.0], depth:[25,999,60,999], shade:[0,5,0,3],
+    traffic:{low:1,medium:1,high:0} },
+
+  { name:"Fine Fescue", latin:"Festuca spp.", group:"Grass",
+    buyLink:"https://www.trueleafmarket.com/products/creeping-red-fescue-grass-seed",
+    seeding_lbs_per_1000sqft: 4,
+    precip:[400,1400,600,1100], temp:[-35,5,-30,-5], gdd:[1300,2800,1500,2300],
+    drainS:["well drained","moderately well drained","somewhat excessively drained","excessively drained"],
+    drainI:["well drained","somewhat excessively drained","excessively drained"],
+    texS:["sandy loam","loamy sand","silt loam","loam","sandy clay loam","silt","sand"],
+    texI:["sandy loam","loamy sand","sand"],
+    ph:[5.5,7.5,5.8,6.8], depth:[20,999,50,999], shade:[0,7,2,6],
+    traffic:{low:1,medium:0,high:-1} },
+
+  { name:"Perennial Ryegrass", latin:"Lolium perenne", group:"Grass",
+    buyLink:"https://www.trueleafmarket.com/products/perennial-ryegrass-seed",
+    seeding_lbs_per_1000sqft: 8,
+    precip:[500,1500,700,1200], temp:[-23,5,-18,-2], gdd:[1600,3000,1900,2600],
+    drainS:["well drained","moderately well drained","somewhat poorly drained"],
+    drainI:["well drained","moderately well drained"],
+    texS:["silt loam","loam","clay loam","sandy loam","loamy sand","silty clay loam"],
+    texI:["silt loam","loam","clay loam"],
+    ph:[5.8,7.5,6.0,7.0], depth:[25,999,60,999], shade:[0,4,0,2],
+    traffic:{low:1,medium:1,high:1} },
+
+  { name:"Creeping Bentgrass", latin:"Agrostis stolonifera", group:"Grass",
+    buyLink:"https://www.trueleafmarket.com/products/creeping-bentgrass-seed",
+    seeding_lbs_per_1000sqft: 1,
+    precip:[550,1400,750,1100], temp:[-30,5,-25,-5], gdd:[1500,2800,1700,2400],
+    drainS:["well drained","moderately well drained","somewhat poorly drained"],
+    drainI:["well drained","moderately well drained"],
+    texS:["sandy loam","loamy sand","silt loam","loam","sand"],
+    texI:["sandy loam","loamy sand","sand"],
+    ph:[5.5,7.0,5.8,6.5], depth:[20,999,40,999], shade:[0,4,0,2],
+    traffic:{low:1,medium:1,high:0} },
+
+  { name:"Rough Bluegrass", latin:"Poa trivialis", group:"Grass",
+    buyLink:"https://www.trueleafmarket.com/products/rough-bluegrass-seed",
+    seeding_lbs_per_1000sqft: 2,
+    precip:[600,1500,800,1200], temp:[-28,5,-22,-3], gdd:[1400,2700,1600,2200],
+    drainS:["somewhat poorly drained","moderately well drained","well drained"],
+    drainI:["somewhat poorly drained","moderately well drained"],
+    texS:["silt loam","loam","clay loam","silty clay loam","silt"],
+    texI:["silt loam","loam","silty clay loam"],
+    ph:[5.5,7.2,5.8,6.8], depth:[20,999,50,999], shade:[1,7,3,6],
+    traffic:{low:1,medium:0,high:-1} },
+
+  { name:"Sheet Moss", latin:"Hypnum spp.", group:"Moss",
+    buyLink:"https://www.edenbrothers.com/store/moss-seeds.html",
+    seeding_lbs_per_1000sqft: 0.5,
+    precip:[700,1600,900,1400], temp:[-40,5,-35,-10], gdd:[800,2500,1000,2000],
+    drainS:["somewhat poorly drained","moderately well drained","well drained","somewhat excessively drained"],
+    drainI:["somewhat poorly drained","moderately well drained"],
+    texS:["loam","silt loam","sandy loam","loamy sand","silt","clay loam"],
+    texI:["loam","silt loam","silt"],
+    ph:[4.5,6.5,5.0,6.0], depth:[5,999,20,999], shade:[2,8,4,8],
+    traffic:{low:0,medium:-1,high:-1} },
+
+  { name:"Cushion Moss", latin:"Leucobryum spp.", group:"Moss",
+    buyLink:"https://www.edenbrothers.com/store/moss-seeds.html",
+    seeding_lbs_per_1000sqft: 0.5,
+    precip:[750,1600,950,1400], temp:[-40,5,-35,-10], gdd:[700,2200,900,1800],
+    drainS:["well drained","somewhat excessively drained","excessively drained","moderately well drained"],
+    drainI:["well drained","somewhat excessively drained"],
+    texS:["sandy loam","loamy sand","sand","silt loam","loam"],
+    texI:["sandy loam","loamy sand","sand"],
+    ph:[4.0,6.0,4.5,5.5], depth:[5,999,15,999], shade:[3,8,5,8],
+    traffic:{low:0,medium:-1,high:-1} },
+
+  { name:"Haircap Moss", latin:"Polytrichum spp.", group:"Moss",
+    buyLink:"https://www.edenbrothers.com/store/moss-seeds.html",
+    seeding_lbs_per_1000sqft: 0.5,
+    precip:[650,1600,850,1400], temp:[-40,5,-38,-10], gdd:[600,2200,800,1800],
+    drainS:["somewhat poorly drained","moderately well drained","well drained"],
+    drainI:["somewhat poorly drained","moderately well drained"],
+    texS:["loam","silt loam","sandy loam","loamy sand","clay loam","silt"],
+    texI:["loam","silt loam"],
+    ph:[4.0,6.5,4.5,5.8], depth:[5,999,15,999], shade:[1,8,3,7],
+    traffic:{low:1,medium:0,high:-1} },
+
+  { name:"Dutch White Clover", latin:"Trifolium repens", group:"Clover",
+    buyLink:"https://www.trueleafmarket.com/products/white-dutch-clover-seed",
+    seeding_lbs_per_1000sqft: 0.5,
+    precip:[500,1500,700,1200], temp:[-30,5,-25,-5], gdd:[1200,3000,1500,2500],
+    drainS:["well drained","moderately well drained","somewhat poorly drained","somewhat excessively drained"],
+    drainI:["well drained","moderately well drained"],
+    texS:["loam","silt loam","clay loam","sandy loam","loamy sand","silty clay loam","silt"],
+    texI:["loam","silt loam","clay loam"],
+    ph:[5.5,7.5,6.0,7.0], depth:[20,999,50,999], shade:[0,5,0,3],
+    traffic:{low:1,medium:1,high:0} },
+
+  { name:"Microclover", latin:"Trifolium repens var.", group:"Clover",
+    buyLink:"https://www.outsidepride.com/seed/clover-seed/micro-clover.html",
+    seeding_lbs_per_1000sqft: 0.25,
+    precip:[450,1500,650,1200], temp:[-28,5,-23,-5], gdd:[1300,3000,1600,2600],
+    drainS:["well drained","moderately well drained","somewhat poorly drained"],
+    drainI:["well drained","moderately well drained"],
+    texS:["loam","silt loam","clay loam","sandy loam","loamy sand","silty clay loam"],
+    texI:["loam","silt loam","clay loam"],
+    ph:[5.5,7.5,6.0,7.0], depth:[20,999,50,999], shade:[0,4,0,3],
+    traffic:{low:1,medium:1,high:0} },
+
+  { name:"Red Clover", latin:"Trifolium pratense", group:"Clover",
+    buyLink:"https://www.trueleafmarket.com/products/red-clover-seed",
+    seeding_lbs_per_1000sqft: 1,
+    precip:[500,1500,700,1200], temp:[-30,5,-25,-5], gdd:[1400,3200,1700,2700],
+    drainS:["well drained","moderately well drained","somewhat poorly drained"],
+    drainI:["well drained","moderately well drained"],
+    texS:["loam","silt loam","clay loam","sandy loam","silty clay loam","silt"],
+    texI:["loam","silt loam","clay loam","silty clay loam"],
+    ph:[5.8,7.5,6.2,7.0], depth:[30,999,70,999], shade:[0,4,0,2],
+    traffic:{low:1,medium:0,high:-1} },
+
+  { name:"Creeping Thyme", latin:"Thymus serpyllum", group:"Alt.",
+    buyLink:"https://www.trueleafmarket.com/products/creeping-thyme-seeds",
+    seeding_lbs_per_1000sqft: 0.1,
+    precip:[350,1200,500,900], temp:[-34,5,-28,-5], gdd:[1400,3200,1800,2800],
+    drainS:["well drained","somewhat excessively drained","excessively drained","moderately well drained"],
+    drainI:["well drained","somewhat excessively drained","excessively drained"],
+    texS:["sandy loam","loamy sand","sand","loam","silt loam"],
+    texI:["sandy loam","loamy sand","sand"],
+    ph:[6.0,8.0,6.5,7.5], depth:[15,999,30,999], shade:[0,4,0,2],
+    traffic:{low:1,medium:1,high:0} },
+
+  { name:"Yarrow", latin:"Achillea millefolium", group:"Alt.",
+    buyLink:"https://www.trueleafmarket.com/products/yarrow-herb-seeds",
+    seeding_lbs_per_1000sqft: 0.1,
+    precip:[300,1400,500,1000], temp:[-40,5,-35,-10], gdd:[1200,3200,1600,2800],
+    drainS:["well drained","somewhat excessively drained","excessively drained","moderately well drained"],
+    drainI:["well drained","somewhat excessively drained"],
+    texS:["sandy loam","loamy sand","loam","silt loam","sand"],
+    texI:["sandy loam","loam"],
+    ph:[5.5,7.5,6.0,7.0], depth:[15,999,30,999], shade:[0,4,0,2],
+    traffic:{low:1,medium:0,high:-1} },
+
+  { name:"Creeping Jenny", latin:"Lysimachia nummularia", group:"Alt.",
+    buyLink:"https://www.edenbrothers.com/store/creeping-jenny-seeds.html",
+    seeding_lbs_per_1000sqft: 0.2,
+    precip:[600,1600,850,1400], temp:[-34,5,-28,-5], gdd:[1200,2800,1400,2400],
+    drainS:["somewhat poorly drained","moderately well drained","well drained"],
+    drainI:["somewhat poorly drained","moderately well drained"],
+    texS:["loam","silt loam","clay loam","silty clay loam","sandy loam","silt"],
+    texI:["loam","silt loam","silty clay loam"],
+    ph:[5.5,7.5,6.0,7.0], depth:[15,999,30,999], shade:[1,7,3,6],
+    traffic:{low:1,medium:0,high:-1} },
+
+  { name:"Wild Violet", latin:"Viola sororia", group:"Alt.",
+    buyLink:"https://www.prairiemoon.com/viola-sororia-common-blue-violet.html",
+    seeding_lbs_per_1000sqft: 0.15,
+    precip:[600,1500,800,1300], temp:[-35,5,-30,-5], gdd:[1200,2800,1400,2400],
+    drainS:["somewhat poorly drained","moderately well drained","well drained"],
+    drainI:["moderately well drained","somewhat poorly drained"],
+    texS:["loam","silt loam","clay loam","silty clay loam","sandy loam","silt"],
+    texI:["loam","silt loam","clay loam"],
+    ph:[5.5,7.0,5.8,6.8], depth:[15,999,40,999], shade:[1,7,3,6],
+    traffic:{low:1,medium:0,high:-1} },
+
+  { name:"Ajuga", latin:"Ajuga reptans", group:"Alt.",
+    buyLink:"https://www.edenbrothers.com/store/ajuga-seeds.html",
+    seeding_lbs_per_1000sqft: 0.15,
+    precip:[550,1500,750,1200], temp:[-34,5,-28,-5], gdd:[1200,2800,1500,2400],
+    drainS:["well drained","moderately well drained","somewhat poorly drained"],
+    drainI:["well drained","moderately well drained"],
+    texS:["loam","silt loam","clay loam","sandy loam","loamy sand","silty clay loam"],
+    texI:["loam","silt loam","clay loam"],
+    ph:[5.5,7.5,6.0,7.0], depth:[20,999,40,999], shade:[2,8,4,7],
+    traffic:{low:1,medium:0,high:-1} },
+
+  { name:"Creeping Phlox", latin:"Phlox subulata", group:"Alt.",
+    buyLink:"https://www.trueleafmarket.com/products/creeping-phlox-seeds",
+    seeding_lbs_per_1000sqft: 0.1,
+    precip:[400,1300,550,1000], temp:[-40,5,-35,-10], gdd:[1400,3000,1700,2600],
+    drainS:["well drained","somewhat excessively drained","excessively drained","moderately well drained"],
+    drainI:["well drained","somewhat excessively drained"],
+    texS:["sandy loam","loamy sand","loam","silt loam","sand"],
+    texI:["sandy loam","loamy sand"],
+    ph:[5.5,7.5,6.0,7.0], depth:[15,999,30,999], shade:[0,4,0,2],
+    traffic:{low:1,medium:-1,high:-1} },
+
+  { name:"Brass Buttons", latin:"Leptinella squalida", group:"Alt.",
+    buyLink:"https://www.outsidepride.com/seed/ground-cover-seed/brass-buttons.html",
+    seeding_lbs_per_1000sqft: 0.2,
+    precip:[550,1500,750,1300], temp:[-28,5,-22,-5], gdd:[1200,2800,1500,2400],
+    drainS:["well drained","moderately well drained","somewhat poorly drained"],
+    drainI:["well drained","moderately well drained"],
+    texS:["loam","sandy loam","silt loam","loamy sand","clay loam"],
+    texI:["loam","sandy loam","silt loam"],
+    ph:[5.5,7.0,5.8,6.8], depth:[15,999,30,999], shade:[0,5,1,4],
+    traffic:{low:1,medium:1,high:0} },
+
+  { name:"Roman Chamomile", latin:"Chamaemelum nobile", group:"Alt.",
+    buyLink:"https://www.trueleafmarket.com/products/roman-chamomile-herb-seeds",
+    seeding_lbs_per_1000sqft: 0.1,
+    precip:[400,1200,550,950], temp:[-20,5,-15,-2], gdd:[1500,3000,1800,2600],
+    drainS:["well drained","somewhat excessively drained","moderately well drained"],
+    drainI:["well drained","somewhat excessively drained"],
+    texS:["sandy loam","loamy sand","loam","sand","silt loam"],
+    texI:["sandy loam","loamy sand","sand"],
+    ph:[5.6,7.5,6.0,7.0], depth:[20,999,40,999], shade:[0,4,0,2],
+    traffic:{low:1,medium:1,high:0} },
+];
+
+const GC = { "Grass":"#1a3a5c","Moss":"#2a5c1a","Clover":"#7a4a0a","Alt.":"#4a2a5c" };
+
+// ── SOIL PARAMETER TOOLTIPS ──────────────────────────────────────
+const TOOLTIPS = {
+  "Soil unit":     "The USDA SSURGO soil map unit name at this exact location. Different parts of the same yard can have different units.",
+  "Component":     "The dominant soil series — the named soil type that makes up most of this map unit.",
+  "Texture":       "The mix of sand, silt, and clay particles. Texture controls water retention and drainage. Sandy soils drain fast; clay soils hold water.",
+  "Drainage":      "How quickly water moves through and away from the soil. Affects which species can survive wet or dry spells.",
+  "pH":            "Soil acidity (below 7) or alkalinity (above 7). Most lawn plants want 6–7. pH affects nutrient availability — the wrong pH locks out nutrients even if they're present.",
+  "Depth":         "Depth to a restrictive layer (bedrock, hardpan, water table). Shallower soils limit rooting and drought resilience.",
+  "Annual precip": "Average total yearly rainfall at this location (PRISM 30-year normal). Sets the baseline moisture species can rely on without irrigation.",
+  "Min winter":    "Mean extreme annual minimum temperature. Determines cold hardiness — species die if their lower threshold is exceeded.",
+  "GDD base 10":   "Growing Degree Days above 10°C. A measure of seasonal heat accumulation. More GDD means a longer, warmer growing season. Cool-season grasses prefer lower values.",
+  "Shade input":   "Your estimate of average daily shade hours. More shade shifts the optimal mix toward tolerant species like Fine Fescue, Rough Bluegrass, and Ajuga.",
+  "Traffic input":  "How much foot traffic the lawn receives. High traffic requires wear-tolerant species like Perennial Ryegrass and Tall Fescue.",
+};
+
+// ── DEMO SOIL PROFILES ───────────────────────────────────────────
+const PROFILES = [
+  { match:["washington","state st","eagle","lark","clinton","downtown","central ave","pearl"],
+    muname:"Colonie fine sandy loam", musym:"CoB", compname:"Colonie",
+    soil_texture:"loamy sand", soil_drainage:"somewhat excessively drained",
+    soil_ph:6.4, soil_depth_cm:140, annual_precip_mm:950, min_winter_temp_c:-23, gdd_base10:2100 },
+  { match:["new scotland","helderberg","guilderland","voorheesville","altamont"],
+    muname:"Mardin channery silt loam", musym:"MdB", compname:"Mardin",
+    soil_texture:"silt loam", soil_drainage:"moderately well drained",
+    soil_ph:5.9, soil_depth_cm:95, annual_precip_mm:1020, min_winter_temp_c:-24, gdd_base10:2020 },
+  { match:["cohoes","watervliet","green island","menands"],
+    muname:"Rhinebeck silt loam", musym:"RhA", compname:"Rhinebeck",
+    soil_texture:"silt loam", soil_drainage:"somewhat poorly drained",
+    soil_ph:6.8, soil_depth_cm:110, annual_precip_mm:970, min_winter_temp_c:-22, gdd_base10:2150 },
+  { match:["bethlehem","slingerlands","delmar","glenmont","selkirk"],
+    muname:"Nassau channery silt loam", musym:"NaC", compname:"Nassau",
+    soil_texture:"silt loam", soil_drainage:"well drained",
+    soil_ph:6.1, soil_depth_cm:75, annual_precip_mm:960, min_winter_temp_c:-23, gdd_base10:2080 },
+  { match:[],
+    muname:"Amenia silt loam", musym:"AmB", compname:"Amenia",
+    soil_texture:"loam", soil_drainage:"well drained",
+    soil_ph:6.5, soil_depth_cm:130, annual_precip_mm:955, min_winter_temp_c:-23, gdd_base10:2100 },
+];
+
+function getProfile(addr) {
+  const l = addr.toLowerCase();
+  for (const p of PROFILES) if (p.match.some(m => l.includes(m))) return p;
+  return PROFILES[PROFILES.length-1];
+}
+
+// ── SCORING ──────────────────────────────────────────────────────
+const sN = (v,a,b,c,d) => v==null?null: v>=c&&v<=d?1: v>=a&&v<=b?0: -1;
+const sC = (v,s,i) => i.includes(v)?1: s.includes(v)?0: -1;
+const SI = sc => {
+  const v=sc.filter(x=>x!==null);
+  if(!v.length) return null;
+  if(v.includes(-1)) return -1;
+  return v.reduce((a,b)=>a+b,0)/v.length;
+};
+function evalSp(sp, site) {
+  const lim=[], checks=[
+    ["precip",   sN(site.annual_precip_mm,  ...sp.precip)],
+    ["min temp", sN(site.min_winter_temp_c, ...sp.temp)],
+    ["GDD",      sN(site.gdd_base10,        ...sp.gdd)],
+    ["depth",    sN(site.soil_depth_cm,     ...sp.depth)],
+    ["pH",       sN(site.soil_ph,           ...sp.ph)],
+    ["shade",    sN(site.shade_hours_day,   ...sp.shade)],
+    ["drainage", sC(site.soil_drainage, sp.drainS, sp.drainI)],
+    ["texture",  sC(site.soil_texture,  sp.texS,   sp.texI)],
+    ["traffic",  sp.traffic[site.traffic_level]??0],
+  ];
+  checks.forEach(([n,s])=>{ if(s===-1) lim.push(n); });
+  return { si:SI(checks.map(c=>c[1])), limiting:lim };
+}
+
+// ── SEEDING RATES ────────────────────────────────────────────────
+// acres → sq ft; typical seeding rates per species
+function calcSeeding(top5, acresRaw) {
+  const acres = parseFloat(acresRaw);
+  if (!acres || isNaN(acres) || acres <= 0) return null;
+  const sqft = acres * 43560;
+  const units = sqft / 1000;
+  const total = top5.reduce((s,sp)=>s + sp.seeding_lbs_per_1000sqft * (sp.pct/100) * units, 0);
+  return { sqft: Math.round(sqft), acres, total: total.toFixed(1),
+    rows: top5.map(sp=>({
+      name: sp.name,
+      pct: sp.pct,
+      lbs: (sp.seeding_lbs_per_1000sqft * (sp.pct/100) * units).toFixed(2),
+      rate: sp.seeding_lbs_per_1000sqft
+    }))
+  };
+}
+
+// ── PLANTING WINDOW ──────────────────────────────────────────────
+function plantingWindow() {
+  const m = new Date().getMonth();
+  if (m>=7&&m<=9) return "Late August – October · ideal window. Soil warm, air cooling — best germination for cool-season species.";
+  if (m>=3&&m<=5) return "April – May · good spring window. Soil temps rising; avoid late frost periods.";
+  if (m>=10||m<=1) return "Late November – December for dormant seeding, or wait for April.";
+  return "Target late August – October for best results. Midsummer heat reduces germination rates.";
+}
+
+// ── COLORS ───────────────────────────────────────────────────────
+function siColor(si) {
+  if (!si||si<0) return 'var(--rule)';
+  if (si>=0.85) return 'var(--green)';
+  if (si>=0.6)  return 'var(--amber)';
+  return 'var(--red)';
+}
+
+// ── MAIN ANALYZE ─────────────────────────────────────────────────
+function analyze() {
+  const addr    = document.getElementById('address').value.trim();
+  const shade   = parseFloat(document.getElementById('shade').value);
+  const traffic = document.getElementById('traffic').value;
+  if (!addr) return;
+  const btn = document.getElementById('runBtn');
+  btn.classList.add('loading'); btn.disabled=true;
+  setTimeout(()=>{ btn.classList.remove('loading'); btn.disabled=false; run(addr,shade,traffic); }, 1400);
+}
+
+function run(addr, shade, traffic) {
+  const acres = document.getElementById('lawnsize').value.trim();
+  const prof  = getProfile(addr);
+  const site  = {...prof, shade_hours_day:shade, traffic_level:traffic};
+  const scored = SPECIES.map(sp=>({...sp,...evalSp(sp,site)}))
+    .sort((a,b)=>(b.si??-2)-(a.si??-2));
+  const suitable = scored.filter(s=>s.si!=null&&s.si>=0);
+  const top5 = suitable.slice(0,5);
+  const total = top5.reduce((s,sp)=>s+sp.si,0)||1;
+  top5.forEach(sp=>sp.pct=Math.round(sp.si/total*100));
+  const seeding = calcSeeding(top5, acres);
+  render(addr, site, prof, scored, top5, seeding);
+}
+
+// ── RENDER ───────────────────────────────────────────────────────
+function render(addr, site, prof, scored, top5, seeding) {
+  document.getElementById('siteAddr').textContent = addr;
+  document.getElementById('siteMeta').textContent =
+    `${prof.muname} · pH ${site.soil_ph} · ${site.soil_drainage}`;
+
+  // Blend table
+  document.getElementById('blendTable').innerHTML = top5.map((sp,i)=>`
+    <tr style="animation-delay:${i*0.06}s">
+      <td class="td-rank">${i+1}</td>
+      <td class="td-name">
+        <a href="${sp.buyLink}" target="_blank" rel="noopener">${sp.name}</a>
+        <span class="sp-latin">${sp.latin}</span>
+      </td>
+      <td class="td-group">
+        <span class="group-dot" style="background:${GC[sp.group]||'#888'}"></span>${sp.group}
+      </td>
+      <td class="td-si">
+        <div class="si-track">
+          <div class="si-fill" style="width:${Math.round(sp.si*100)}%;background:${siColor(sp.si)}"></div>
+        </div>
+      </td>
+      <td class="td-pct">${sp.pct}%</td>
+    </tr>`).join('');
+
+  // Seeding plan
+  const spw = document.getElementById('seedingPlanWrap');
+  if (seeding) {
+    spw.innerHTML = `
+      <div class="seeding-plan" style="margin-top:1.2rem">
+        <div class="seeding-plan-header">Seeding plan — ${seeding.acres} acre${seeding.acres!==1?'s':''} (${seeding.sqft.toLocaleString()} sq ft)</div>
+        <div class="seeding-grid">
+          <div class="seeding-cell">
+            <div class="sc-label">Total seed needed</div>
+            <div class="sc-val">${seeding.total} lbs</div>
+            <div class="sc-sub">blend combined</div>
+          </div>
+          <div class="seeding-cell">
+            <div class="sc-label">Coverage</div>
+            <div class="sc-val">${seeding.sqft.toLocaleString()} ft²</div>
+            <div class="sc-sub">${seeding.acres} acres</div>
+          </div>
+          <div class="seeding-cell">
+            <div class="sc-label">Method</div>
+            <div class="sc-val" style="font-size:0.9rem">Broadcast + rake</div>
+            <div class="sc-sub">or slit-seeder for best contact</div>
+          </div>
+        </div>
+        <div class="seeding-species-rows">
+          <div class="seeding-sp-row header">
+            <span>Species</span><span>Blend %</span><span>Lbs needed</span><span>Rate /1000 ft²</span>
+          </div>
+          ${seeding.rows.map(r=>`
+            <div class="seeding-sp-row">
+              <div>${r.name}</div>
+              <span>${r.pct}%</span>
+              <span>${r.lbs} lbs</span>
+              <span>${r.rate} lbs</span>
+            </div>`).join('')}
+        </div>
+      </div>`;
+  } else {
+    spw.innerHTML = '';
+  }
+
+  // Planting note
+  document.getElementById('plantingText').textContent = plantingWindow();
+
+  // Soil table with tooltips
+  const soilRows = [
+    ["Soil unit",     prof.muname],
+    ["Component",     prof.compname],
+    ["Texture",       cap(site.soil_texture)],
+    ["Drainage",      cap(site.soil_drainage)],
+    ["pH",            site.soil_ph],
+    ["Depth",         site.soil_depth_cm + " cm"],
+    ["Annual precip", site.annual_precip_mm + " mm"],
+    ["Min winter",    site.min_winter_temp_c + "°C"],
+    ["GDD base 10",   site.gdd_base10],
+    ["Shade input",   site.shade_hours_day + " hrs/day"],
+    ["Traffic input", cap(site.traffic_level)],
+  ];
+  document.getElementById('soilTable').innerHTML = `
+    <tr><th>Parameter</th><th style="text-align:right">Value</th></tr>
+    ${soilRows.map(([k,v])=>`
+      <tr>
+        <td>
+          <div class="info-wrap">
+            ${k}
+            ${TOOLTIPS[k]?`<span class="info-icon">?</span><div class="tooltip">${TOOLTIPS[k]}</div>`:''}
+          </div>
+        </td>
+        <td>${v}</td>
+      </tr>`).join('')}`;
+
+  // All species breakdown
+  document.getElementById('allSpecies').innerHTML = `
+    <div class="species-breakdown-row header">
+      <span>Species</span><span>SI</span><span>Score</span><span>Limiting factors</span>
+    </div>` +
+    scored.map((sp,i)=>{
+      const bad = sp.si===-1||sp.si===null;
+      const siStr = bad?'—':sp.si.toFixed(3);
+      // limiting pills (for bad species) or group tag (for good)
+      const rightCol = bad
+        ? sp.limiting.map(l=>`<span class="limit-pill bad">${l}</span>`).join('')
+        : sp.limiting.length
+          ? sp.limiting.map(l=>`<span class="limit-pill">${l} (partial)</span>`).join('')
+          : `<span class="limit-pill" style="border-color:var(--green);color:var(--green)">all pass</span>`;
+      return `
+        <div class="species-breakdown-row ${bad?'sp-unsuitable':''}" style="animation-delay:${i*0.02}s">
+          <div>
+            <div style="font-size:0.9rem">${sp.name}</div>
+            <div class="sp-group-tag">${sp.group}</div>
+          </div>
+          <div class="si-track" style="margin-top:0.15rem">
+            <div class="si-fill" style="width:${bad?0:Math.round(sp.si*100)}%;background:${siColor(sp.si)}"></div>
+          </div>
+          <div class="score-mono" style="color:${siColor(sp.si)}">${siStr}</div>
+          <div class="limit-pills">${rightCol}</div>
+        </div>`;
+    }).join('');
+
+  const r=document.getElementById('results');
+  r.classList.add('show');
+  // scroll smoothly to results
+  setTimeout(()=>r.scrollIntoView({behavior:'smooth',block:'start'}),100);
+}
+
+function toggleBreakdown() {
+  const btn=document.getElementById('toggleBtn');
+  const panel=document.getElementById('breakdown');
+  btn.classList.toggle('open');
+  panel.classList.toggle('open');
+}
+function cap(s){ return s?s[0].toUpperCase()+s.slice(1):s; }
+document.getElementById('address').addEventListener('keydown', e=>{ if(e.key==='Enter') analyze(); });
+</script>
+</body>
+</html>
